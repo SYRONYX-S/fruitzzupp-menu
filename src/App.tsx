@@ -3,6 +3,14 @@ import { CATEGORY_ORDER, MENU, MenuCategory, MenuItem } from './data/menu'
 
 type ViewMode = 'grid' | 'list'
 
+// Filter types
+type FilterType = {
+  maxCalories: number | null
+  healthyPicks: boolean
+  vegetarian: boolean
+  favourites: boolean
+}
+
 function useLocalStorage<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(() => {
     try {
@@ -47,7 +55,26 @@ function ItemCard({ item, onOpen }: { item: MenuItem, onOpen: (src: string, alt:
       <div className="thumb" onClick={() => onOpen(src, item.name)}>
         <img loading="lazy" decoding="async" src={src} alt={item.name} width={600} height={400} />
       </div>
-      <div className="name">{item.name}</div>
+      <div className="name-container">
+        <div className="name">{item.name}</div>
+        <div className="dietary-icons">
+          {item.isHealthy && (
+            <span className="dietary-icon healthy" title="Healthy option">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </span>
+          )}
+          {item.isVegetarian && (
+            <span className="dietary-icon vegetarian" title="Vegetarian">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2">
+                <rect x="2" y="2" width="20" height="20" rx="2"/>
+                <circle cx="12" cy="12" r="4" fill="#16a34a"/>
+              </svg>
+            </span>
+          )}
+        </div>
+      </div>
       <div className="meta">
         <span className="kcal" aria-label="calories">≈ {item.kcal} kcal</span>
         <span className="price">{formatPrice(item.price)}</span>
@@ -63,8 +90,27 @@ function ItemRow({ item, onOpen }: { item: MenuItem, onOpen: (src: string, alt: 
       <div className="thumb" onClick={() => onOpen(src, item.name)}>
         <img loading="lazy" decoding="async" src={src} alt={item.name} width={300} height={200} />
       </div>
-      <div>
-        <div className="name">{item.name}</div>
+      <div className="item-info">
+        <div className="name-container">
+          <div className="name">{item.name}</div>
+          <div className="dietary-icons">
+            {item.isHealthy && (
+              <span className="dietary-icon healthy" title="Healthy option">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+              </span>
+            )}
+            {item.isVegetarian && (
+              <span className="dietary-icon vegetarian" title="Vegetarian">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2">
+                  <rect x="2" y="2" width="20" height="20" rx="2"/>
+                  <circle cx="12" cy="12" r="4" fill="#16a34a"/>
+                </svg>
+              </span>
+            )}
+          </div>
+        </div>
         <div className="kcal">≈ {item.kcal} kcal</div>
       </div>
       <div className="price">{formatPrice(item.price)}</div>
@@ -85,9 +131,138 @@ function CategorySection({ category, view, onOpen }: { category: MenuCategory, v
   )
 }
 
+function FilterModal({ 
+  isOpen, 
+  onClose, 
+  filters, 
+  onFiltersChange 
+}: { 
+  isOpen: boolean
+  onClose: () => void
+  filters: FilterType
+  onFiltersChange: (filters: FilterType) => void 
+}) {
+  const calorieOptions = [null, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800]
+  
+  if (!isOpen) return null
+  
+  return (
+    <div className="filter-modal-overlay" onClick={onClose}>
+      <div className="filter-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="filter-modal-header">
+          <h3>Quick Filters</h3>
+          <div className="filter-header-actions">
+            {(filters.maxCalories || filters.healthyPicks || filters.vegetarian || filters.favourites) && (
+              <button
+                className="clear-filters-btn"
+                onClick={() => onFiltersChange({
+                  maxCalories: null,
+                  healthyPicks: false,
+                  vegetarian: false,
+                  favourites: false
+                })}
+                title="Clear all filters"
+                aria-label="Clear all filters"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 6h18"></path>
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                </svg>
+                <span>Clear</span>
+              </button>
+            )}
+            <button className="filter-close-btn" onClick={onClose} aria-label="Close filters">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <div className="filter-modal-content">
+          <div className="filter-section">
+            <label className="filter-section-label">Max Calories</label>
+            <select
+              value={filters.maxCalories || ''}
+              onChange={(e) => onFiltersChange({
+                ...filters,
+                maxCalories: e.target.value ? Number(e.target.value) : null
+              })}
+              className="filter-dropdown"
+            >
+              <option value="">Any</option>
+              {calorieOptions.filter(cal => cal !== null).map(cal => (
+                <option key={cal} value={cal}>{cal} kcal</option>
+              ))}
+            </select>
+          </div>
+          
+          <div className="filter-section">
+            <button
+              className={`filter-toggle ${filters.healthyPicks ? 'active' : ''}`}
+              onClick={() => onFiltersChange({
+                ...filters,
+                healthyPicks: !filters.healthyPicks
+              })}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"></polygon>
+              </svg>
+              <span>Healthy Picks</span>
+            </button>
+          </div>
+          
+          <div className="filter-section">
+            <button
+              className={`filter-toggle ${filters.vegetarian ? 'active' : ''}`}
+              onClick={() => onFiltersChange({
+                ...filters,
+                vegetarian: !filters.vegetarian
+              })}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                <path d="M6 2H8a2.5 2.5 0 0 1 0 5H6"></path>
+                <path d="M6 12h8a2.5 2.5 0 0 1 0 5H6"></path>
+                <path d="M6 19h8a2.5 2.5 0 0 1 0 5H6"></path>
+              </svg>
+              <span>Vegetarian</span>
+            </button>
+          </div>
+          
+          <div className="filter-section">
+            <button
+              className={`filter-toggle ${filters.favourites ? 'active' : ''}`}
+              onClick={() => onFiltersChange({
+                ...filters,
+                favourites: !filters.favourites
+              })}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              </svg>
+              <span>Favorites</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const [query, setQuery] = useState('')
   const [view, setView] = useLocalStorage<ViewMode>('fruitzzUpp:view', 'grid')
+  const [filters, setFilters] = useLocalStorage<FilterType>('fruitzzUpp:filters', {
+    maxCalories: null,
+    healthyPicks: false,
+    vegetarian: false,
+    favourites: false
+  })
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
+  const [shakeCategory, setShakeCategory] = useState<string | null>(null)
   const active = useScrollSpy(CATEGORY_ORDER.map(c => c.id))
   const topRef = useRef<HTMLDivElement | null>(null)
   const headerRef = useRef<HTMLElement | null>(null)
@@ -95,17 +270,71 @@ function App() {
   const [lightbox, setLightbox] = useState<{src: string, alt: string} | null>(null)
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return MENU
-    const q = query.trim().toLowerCase()
-    return MENU.map(cat => ({
-      ...cat,
-      items: cat.items.filter(i => i.name.toLowerCase().includes(q)),
-    })).filter(cat => cat.items.length > 0)
-  }, [query])
+    let result = MENU
+    
+    // Apply text search filter
+    if (query.trim()) {
+      const q = query.trim().toLowerCase()
+      result = result.map(cat => ({
+        ...cat,
+        items: cat.items.filter(i => i.name.toLowerCase().includes(q)),
+      })).filter(cat => cat.items.length > 0)
+    }
+    
+    // Apply calorie filter
+    if (filters.maxCalories) {
+      result = result.map(cat => ({
+        ...cat,
+        items: cat.items.filter(i => i.kcal <= filters.maxCalories!),
+      })).filter(cat => cat.items.length > 0)
+    }
+    
+    // Apply healthy picks filter (low calorie items)
+    if (filters.healthyPicks) {
+      result = result.map(cat => ({
+        ...cat,
+        items: cat.items.filter(i => i.kcal <= 150),
+      })).filter(cat => cat.items.length > 0)
+    }
+    
+    // Apply vegetarian filter
+    if (filters.vegetarian) {
+      const vegetarianKeywords = ['veg', 'vegetarian', 'salad', 'fruit', 'tea', 'coffee', 'juice', 'shake', 'mocktail', 'falooda', 'brownie', 'ice cream']
+      result = result.map(cat => ({
+        ...cat,
+        items: cat.items.filter(i => {
+          const name = i.name.toLowerCase()
+          return vegetarianKeywords.some(keyword => name.includes(keyword)) || 
+                 !['chicken', 'beef', 'egg', 'crab'].some(nonVeg => name.includes(nonVeg))
+        }),
+      })).filter(cat => cat.items.length > 0)
+    }
+    
+    // Apply favourites filter (items with higher ratings/popularity indicators)
+    if (filters.favourites) {
+      const favouriteKeywords = ['special', 'classic', 'king', 'jumbo', 'loaded', 'sizzler']
+      result = result.map(cat => ({
+        ...cat,
+        items: cat.items.filter(i => {
+          const name = i.name.toLowerCase()
+          return favouriteKeywords.some(keyword => name.includes(keyword)) || 
+                 i.kcal >= 200 // Higher calorie items often indicate premium/favourite choices
+        }),
+      })).filter(cat => cat.items.length > 0)
+    }
+    
+    return result
+  }, [query, filters])
 
   const scrollTo = (id: string) => {
     const el = document.getElementById(id)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else {
+      // Category is empty due to filters - show shake feedback
+      setShakeCategory(id)
+      setTimeout(() => setShakeCategory(null), 600) // Remove shake class after animation
+    }
   }
 
   useEffect(() => {
@@ -186,6 +415,7 @@ function App() {
         <div className="brand-inner container" style={{ paddingBottom: 4 }}>
           <div className="logo">FruitzzUpp</div>
         </div>
+        
         <div className="toolbar container" style={{ paddingTop: 6 }}>
           <label className="search" aria-label="Search menu">
             <span className="sr-only">Search</span>
@@ -197,6 +427,19 @@ function App() {
               aria-describedby="search-help"
             />
           </label>
+          
+          {/* Filter Button */}
+          <button 
+            className="filter-btn"
+            onClick={() => setIsFilterModalOpen(true)}
+            aria-label="Open filters"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"></polygon>
+            </svg>
+            <span>Filters</span>
+          </button>
+          
           <div className="toggle" role="group" aria-label="View toggle">
             <button aria-pressed={view==='grid'} onClick={() => setView('grid')} aria-label="Grid view" title="Grid view">
               <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>
@@ -211,7 +454,7 @@ function App() {
             {CATEGORY_ORDER.map(c => (
               <button
                 key={c.id}
-                className={`cat-chip ${active===c.id ? 'active' : ''}`}
+                className={`cat-chip ${active===c.id ? 'active' : ''} ${shakeCategory === c.id ? 'shake' : ''}`}
                 onClick={(e) => { scrollTo(c.id) }}
                 aria-current={active===c.id ? 'true' : undefined}
               >{c.title}</button>
@@ -223,10 +466,52 @@ function App() {
       </header>
 
       <main className="container" id="top">
-        {(query ? filtered : MENU).map(section => (
+        {/* Filter results summary */}
+        {(query || Object.values(filters).some(f => f !== false && f !== null)) && (
+          <div className="filter-summary">
+            <p>Showing {filtered.reduce((total, cat) => total + cat.items.length, 0)} items from {MENU.reduce((total, cat) => total + cat.items.length, 0)} total</p>
+          </div>
+        )}
+
+        {/* Recommended Dishes Section */}
+        <section className="recommended-section">
+          <h2 className="section-title">Recommended Dishes</h2>
+          <div className="recommended-scroll">
+            {MENU.flatMap(category => category.items)
+              .filter(item => item.isHealthy || item.isVegetarian)
+              .slice(0, 8)
+              .map(item => (
+                <div key={item.name} className="recommended-item">
+                  <div className="recommended-image">
+                    <img src={item.image} alt={item.name} loading="lazy" />
+                    <div className="recommended-overlay">
+                      <div className="recommended-name">{item.name}</div>
+                      <div className="recommended-meta">
+                        <span className="recommended-kcal">≈{item.kcal} cal</span>
+                        <span className="recommended-price">{formatPrice(item.price)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </section>
+
+        {/* Clean Horizontal Rule Separator */}
+        <div className="clean-separator"></div>
+        
+        {(query || Object.values(filters).some(f => f !== false && f !== null) ? filtered : MENU).map(section => (
           <CategorySection key={section.id} category={section} view={view} onOpen={(src, alt) => setLightbox({ src, alt })} />
         ))}
       </main>
+
+      {/* Filter Modal */}
+      <FilterModal 
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        filters={filters}
+        onFiltersChange={setFilters}
+      />
 
       <button
         className="fab-top"

@@ -119,6 +119,20 @@ function item(name: string, price: string): MenuItem {
 
 export const MENU: MenuCategory[] = [
   {
+    id: 'recommended',
+    title: 'Recommended',
+    items: [
+      item('Classic Chicken Burger', '130'),
+      item('Cappuccino', '100'),
+      item('BBQ Chicken Pizza', '250'),
+      item('Vanilla Shake', '120'),
+      item('Chicken Mayo Sandwich', '90'),
+      item('Special Falooda', '170'),
+      item('Coffee Frappe (Cold Coffee)', '130'),
+      item('Loaded Fries - L/M', '180 / 100'),
+    ],
+  },
+  {
     id: 'hot-beverages',
     title: 'Hot beverages',
     items: [
@@ -324,6 +338,6 @@ export const MENU: MenuCategory[] = [
   },
 ]
 
-export const CATEGORY_ORDER = MENU.map(c => ({ id: c.id, title: c.title }))
+export const CATEGORY_ORDER = MENU.filter(c => c.id !== 'recommended').map(c => ({ id: c.id, title: c.title }))
 
 

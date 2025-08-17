@@ -48,11 +48,11 @@ function useScrollSpy(ids: string[]) {
 
 function formatPrice(p: string) { return `₹ ${p}` }
 
-function ItemCard({ item, onOpen }: { item: MenuItem, onOpen: (src: string, alt: string) => void }) {
+function ItemCard({ item, onTap }: { item: MenuItem, onTap: (item: MenuItem, event: React.MouseEvent) => void }) {
   const [src] = useState(item.image)
   return (
     <article className="card fade-in" aria-label={item.name}>
-      <div className="thumb" onClick={() => onOpen(src, item.name)}>
+      <div className="thumb" onClick={(e) => onTap(item, e)}>
         <img loading="lazy" decoding="async" src={src} alt={item.name} width={600} height={400} />
       </div>
       <div className="name-container">
@@ -83,11 +83,11 @@ function ItemCard({ item, onOpen }: { item: MenuItem, onOpen: (src: string, alt:
   )
 }
 
-function ItemRow({ item, onOpen }: { item: MenuItem, onOpen: (src: string, alt: string) => void }) {
+function ItemRow({ item, onTap }: { item: MenuItem, onTap: (item: MenuItem, event: React.MouseEvent) => void }) {
   const [src] = useState(item.image)
   return (
     <article className="row fade-in" aria-label={item.name}>
-      <div className="thumb" onClick={() => onOpen(src, item.name)}>
+      <div className="thumb" onClick={(e) => onTap(item, e)}>
         <img loading="lazy" decoding="async" src={src} alt={item.name} width={300} height={200} />
       </div>
       <div className="item-info">
@@ -106,22 +106,22 @@ function ItemRow({ item, onOpen }: { item: MenuItem, onOpen: (src: string, alt: 
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2">
                   <rect x="2" y="2" width="20" height="20" rx="2"/>
                   <circle cx="12" cy="12" r="4" fill="#16a34a"/>
-                </svg>
-              </span>
-            )}
-          </div>
+              </svg>
+            </span>
+          )}
         </div>
-        <div className="kcal">≈ {item.kcal} kcal</div>
       </div>
-      <div className="price">{formatPrice(item.price)}</div>
-    </article>
-  )
+      <div className="kcal">≈ {item.kcal} kcal</div>
+    </div>
+    <div className="price">{formatPrice(item.price)}</div>
+  </article>
+)
 }
 
-function CategorySection({ category, view, onOpen }: { category: MenuCategory, view: ViewMode, onOpen: (src: string, alt: string) => void }) {
+function CategorySection({ category, view, onTap }: { category: MenuCategory, view: ViewMode, onTap: (item: MenuItem, event: React.MouseEvent) => void }) {
   const Layout = view === 'grid' ?
-    <div className="grid">{category.items.map(i => <ItemCard key={i.name} item={i} onOpen={onOpen} />)}</div> :
-    <div className="list">{category.items.map(i => <ItemRow key={i.name} item={i} onOpen={onOpen} />)}</div>
+    <div className="grid">{category.items.map(i => <ItemCard key={i.name} item={i} onTap={onTap} />)}</div> :
+    <div className="list">{category.items.map(i => <ItemRow key={i.name} item={i} onTap={onTap} />)}</div>
 
   return (
     <section id={category.id} aria-labelledby={`${category.id}-title`}>
@@ -252,6 +252,67 @@ function FilterModal({
   )
 }
 
+function DishSuggestionModal({ 
+  isOpen, 
+  onClose, 
+  item, 
+  suggestions,
+  position,
+  isTransitioning
+}: { 
+  isOpen: boolean
+  onClose: () => void
+  item: MenuItem
+  suggestions: MenuItem[]
+  position: { x: number, y: number }
+  isTransitioning: boolean
+}) {
+  if (!isOpen) return null
+
+  return (
+    <div className="dish-suggestion-popup-overlay" onClick={onClose}>
+      <div 
+        className={`dish-suggestion-popup ${isTransitioning ? 'transitioning' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          left: `${position.x}px`,
+          top: `${position.y}px`
+        }}
+      >
+        <div className="popup-header">
+          <h4>Perfect Pairings</h4>
+          <p>Try these with "{item.name}"</p>
+        </div>
+        
+        <div className="popup-suggestions">
+          {suggestions.slice(0, 2).map(s => (
+            <div key={s.name} className="popup-suggestion-item">
+              <div className="popup-image">
+                <img src={s.image} alt={s.name} width={80} height={60} />
+              </div>
+              
+              <div className="popup-content">
+                <div className="popup-name">{s.name}</div>
+                <div className="popup-meta">
+                  <span className="popup-kcal">≈{s.kcal} cal</span>
+                  <span className="popup-price">{s.price}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        <button className="popup-close-btn" onClick={onClose} aria-label="Close suggestions">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const [query, setQuery] = useState('')
   const [view, setView] = useLocalStorage<ViewMode>('fruitzzUpp:view', 'grid')
@@ -263,11 +324,96 @@ function App() {
   })
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false)
   const [shakeCategory, setShakeCategory] = useState<string | null>(null)
+  const [suggestionModal, setSuggestionModal] = useState<{item: MenuItem, suggestions: MenuItem[], position: {x: number, y: number}} | null>(null)
+  const [isTransitioning, setIsTransitioning] = useState(false)
   const active = useScrollSpy(CATEGORY_ORDER.map(c => c.id))
   const topRef = useRef<HTMLDivElement | null>(null)
   const headerRef = useRef<HTMLElement | null>(null)
   const [showTop, setShowTop] = useState(false)
   const [lightbox, setLightbox] = useState<{src: string, alt: string} | null>(null)
+
+  const getDishSuggestions = (selectedItem: MenuItem): MenuItem[] => {
+    const suggestions: MenuItem[] = []
+    const selectedName = selectedItem.name.toLowerCase()
+    const usedImages = new Set([selectedItem.image]) // Track used images to avoid repetition
+    
+    // Find complementary dishes based on category and type
+    MENU.forEach(category => {
+      category.items.forEach(item => {
+        if (item.name !== selectedItem.name && !usedImages.has(item.image)) {
+          let score = 0
+          
+          // Beverage + Food combinations
+          if (/coffee|tea|latte|cappuccino|mocha|frappe|juice|shake|mojito/i.test(selectedName) && 
+              /burger|sandwich|wrap|pizza|snack|salad|dessert/i.test(item.name.toLowerCase())) {
+            score += 3
+          }
+          
+          // Food + Beverage combinations
+          if (/burger|sandwich|wrap|pizza|snack|salad|dessert/i.test(selectedName) && 
+              /coffee|tea|latte|cappuccino|mocha|frappe|juice|shake|mojito/i.test(item.name.toLowerCase())) {
+            score += 3
+          }
+          
+          // Dessert + Beverage combinations
+          if (/dessert|ice cream|brownie|falooda|donut/i.test(selectedName) && 
+              /coffee|tea|latte|cappuccino|mocha|frappe|juice|shake|mojito/i.test(item.name.toLowerCase())) {
+            score += 2
+          }
+          
+          // Same category but different items
+          if (category.items.includes(selectedItem)) {
+            score += 1
+          }
+          
+          // Healthy combinations
+          if (selectedItem.isHealthy && item.isHealthy) {
+            score += 1
+          }
+          
+          // Vegetarian combinations
+          if (selectedItem.isVegetarian && item.isVegetarian) {
+            score += 1
+          }
+          
+          if (score > 0) {
+            suggestions.push({ ...item, score })
+            usedImages.add(item.image) // Mark this image as used
+          }
+        }
+      })
+    })
+    
+    // Sort by score and return top 4 suggestions with unique images
+    return suggestions
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, 4)
+      .map(({ score, ...item }) => item)
+  }
+
+  const handleDishTap = (item: MenuItem, event: React.MouseEvent) => {
+    const suggestions = getDishSuggestions(item)
+    const rect = event.currentTarget.getBoundingClientRect()
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
+    
+    const position = {
+      x: rect.left + rect.width / 2 + scrollLeft,
+      y: rect.bottom + scrollTop + 10
+    }
+    
+    if (suggestionModal) {
+      // If popup is already open, animate the transition
+      setIsTransitioning(true)
+      setTimeout(() => {
+        setSuggestionModal({ item, suggestions, position })
+        setIsTransitioning(false)
+      }, 150) // Half of the transition duration
+    } else {
+      // First time opening
+      setSuggestionModal({ item, suggestions, position })
+    }
+  }
 
   const filtered = useMemo(() => {
     let result = MENU
@@ -472,36 +618,9 @@ function App() {
             <p>Showing {filtered.reduce((total, cat) => total + cat.items.length, 0)} items from {MENU.reduce((total, cat) => total + cat.items.length, 0)} total</p>
           </div>
         )}
-
-        {/* Recommended Dishes Section */}
-        <section className="recommended-section">
-          <h2 className="section-title">Recommended Dishes</h2>
-          <div className="recommended-scroll">
-            {MENU.flatMap(category => category.items)
-              .filter(item => item.isHealthy || item.isVegetarian)
-              .slice(0, 8)
-              .map(item => (
-                <div key={item.name} className="recommended-item">
-                  <div className="recommended-image">
-                    <img src={item.image} alt={item.name} loading="lazy" />
-                    <div className="recommended-overlay">
-                      <div className="recommended-name">{item.name}</div>
-                      <div className="recommended-meta">
-                        <span className="recommended-kcal">≈{item.kcal} cal</span>
-                        <span className="recommended-price">{formatPrice(item.price)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-          </div>
-        </section>
-
-        {/* Clean Horizontal Rule Separator */}
-        <div className="clean-separator"></div>
         
         {(query || Object.values(filters).some(f => f !== false && f !== null) ? filtered : MENU).map(section => (
-          <CategorySection key={section.id} category={section} view={view} onOpen={(src, alt) => setLightbox({ src, alt })} />
+          <CategorySection key={section.id} category={section} view={view} onTap={handleDishTap} />
         ))}
       </main>
 
@@ -512,6 +631,17 @@ function App() {
         filters={filters}
         onFiltersChange={setFilters}
       />
+
+      {suggestionModal && (
+        <DishSuggestionModal 
+          isOpen={!!suggestionModal}
+          onClose={() => setSuggestionModal(null)}
+          item={suggestionModal.item}
+          suggestions={suggestionModal.suggestions}
+          position={suggestionModal.position}
+          isTransitioning={isTransitioning}
+        />
+      )}
 
       <button
         className="fab-top"

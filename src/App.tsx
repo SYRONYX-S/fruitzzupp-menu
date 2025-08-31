@@ -554,6 +554,39 @@ function App() {
     }
   }, [active])
 
+  // Auto-scroll category navigation to center active category
+  useEffect(() => {
+    const container = document.getElementById('catInner')
+    const categoriesContainer = container?.parentElement as HTMLElement | null
+    if (!container || !categoriesContainer) return
+
+    const activeEl = container.querySelector('.cat-chip.active') as HTMLButtonElement | null
+    if (!activeEl) return
+
+    // Calculate the position to center the active element
+    const containerRect = categoriesContainer.getBoundingClientRect()
+    const activeRect = activeEl.getBoundingClientRect()
+    
+    // Get current scroll position
+    const currentScroll = categoriesContainer.scrollLeft
+    
+    // Calculate the center position of the container
+    const containerCenter = containerRect.width / 2
+    
+    // Calculate the active element's position relative to the container
+    const activeLeft = activeRect.left - containerRect.left + currentScroll
+    const activeCenter = activeLeft + (activeRect.width / 2)
+    
+    // Calculate the scroll position needed to center the active element
+    const targetScroll = activeCenter - containerCenter
+    
+    // Smooth scroll to the target position
+    categoriesContainer.scrollTo({
+      left: Math.max(0, targetScroll),
+      behavior: 'smooth'
+    })
+  }, [active])
+
   return (
     <>
       {/* decorative elements removed per request */}

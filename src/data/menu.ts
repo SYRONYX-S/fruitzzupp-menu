@@ -142,7 +142,7 @@ export const MENU: MenuCategory[] = [
       item('Cappuccino', '100'),
       item('Café Late', '100'),
       item('Cortado', '130'),
-      item('Cappuccino (vanilla/caramel/hazelnut)', '140'),
+      item('Cappuccino ( vanilla / caramel / hazelnut )', '140'),
       item('Café Mocha', '120'),
       item('Café Affogato', '130'),
       item('Spanish Café Latte', '120'),

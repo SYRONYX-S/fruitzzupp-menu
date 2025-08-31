@@ -398,10 +398,45 @@ function App() {
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop
     const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
     
-    const position = {
-      x: rect.left + rect.width / 2 + scrollLeft,
-      y: rect.bottom + scrollTop + 10
+    // Popup dimensions (based on CSS)
+    const popupWidth = window.innerWidth <= 768 ? 280 : 320
+    const popupHeight = window.innerWidth <= 768 ? 260 : 280
+    const popupPadding = 16 // Minimum distance from viewport edges
+    
+    // Calculate initial position (centered horizontally, below the clicked element)
+    let x = rect.left + rect.width / 2 + scrollLeft
+    let y = rect.bottom + scrollTop + 10
+    
+    // Get viewport dimensions
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    
+    // Check horizontal boundaries
+    const halfPopupWidth = popupWidth / 2
+    if (x - halfPopupWidth < scrollLeft + popupPadding) {
+      // Popup would be cut off on the left
+      x = scrollLeft + popupPadding + halfPopupWidth
+    } else if (x + halfPopupWidth > scrollLeft + viewportWidth - popupPadding) {
+      // Popup would be cut off on the right
+      x = scrollLeft + viewportWidth - popupPadding - halfPopupWidth
     }
+    
+    // Check vertical boundaries
+    if (y + popupHeight > scrollTop + viewportHeight - popupPadding) {
+      // Popup would be cut off at the bottom, position it above the clicked element
+      y = rect.top + scrollTop - popupHeight - 10
+      
+      // If it's still cut off at the top, position it in the middle of the viewport
+      if (y < scrollTop + popupPadding) {
+        y = scrollTop + (viewportHeight - popupHeight) / 2
+      }
+    }
+    
+    // Final safety check - ensure popup is always within viewport bounds
+    x = Math.max(scrollLeft + popupPadding, Math.min(x, scrollLeft + viewportWidth - popupWidth - popupPadding))
+    y = Math.max(scrollTop + popupPadding, Math.min(y, scrollTop + viewportHeight - popupHeight - popupPadding))
+    
+    const position = { x, y }
     
     if (suggestionModal) {
       // If popup is already open, animate the transition
@@ -586,6 +621,98 @@ function App() {
       behavior: 'smooth'
     })
   }, [active])
+
+  // Auto-carousel for recommended section
+  useEffect(() => {
+    const recommendedSection = document.getElementById('recommended')
+    if (!recommendedSection) return
+
+    const scrollContainer = recommendedSection.querySelector('.grid, .list') as HTMLElement | null
+    if (!scrollContainer) return
+
+    let autoScrollInterval: NodeJS.Timeout
+    let isPaused = false
+
+    const startAutoScroll = () => {
+      if (isPaused) return
+      
+      autoScrollInterval = setInterval(() => {
+        if (isPaused) return
+
+        const scrollWidth = scrollContainer.scrollWidth
+        const clientWidth = scrollContainer.clientWidth
+        const currentScroll = scrollContainer.scrollLeft
+
+        // Calculate card width based on view mode and screen size
+        const isSmallMobile = window.innerWidth <= 480
+        const isMobile = window.innerWidth < 768
+        let cardWidth: number
+        
+        if (view === 'grid') {
+          cardWidth = isSmallMobile ? 280 : 300 // Card width + gap
+        } else {
+          cardWidth = isSmallMobile ? 380 : (isMobile ? 420 : 440) // Row width + gap
+        }
+        
+        // Calculate next scroll position
+        const nextScroll = currentScroll + cardWidth
+
+        if (nextScroll >= scrollWidth - clientWidth) {
+          // Reset to beginning
+          scrollContainer.scrollTo({ left: 0, behavior: 'smooth' })
+        } else {
+          // Scroll to next card
+          scrollContainer.scrollTo({ left: nextScroll, behavior: 'smooth' })
+        }
+      }, 3000) // Auto-scroll every 3 seconds
+    }
+
+    const stopAutoScroll = () => {
+      if (autoScrollInterval) {
+        clearInterval(autoScrollInterval)
+      }
+    }
+
+    const handleMouseEnter = () => {
+      isPaused = true
+      stopAutoScroll()
+    }
+
+    const handleMouseLeave = () => {
+      isPaused = false
+      startAutoScroll()
+    }
+
+    const handleTouchStart = () => {
+      isPaused = true
+      stopAutoScroll()
+    }
+
+    const handleTouchEnd = () => {
+      // Resume after a delay to allow for touch scrolling to complete
+      setTimeout(() => {
+        isPaused = false
+        startAutoScroll()
+      }, 1500)
+    }
+
+    // Add event listeners for pause on interaction
+    scrollContainer.addEventListener('mouseenter', handleMouseEnter)
+    scrollContainer.addEventListener('mouseleave', handleMouseLeave)
+    scrollContainer.addEventListener('touchstart', handleTouchStart, { passive: true })
+    scrollContainer.addEventListener('touchend', handleTouchEnd, { passive: true })
+
+    // Start the auto-scroll
+    startAutoScroll()
+
+    return () => {
+      stopAutoScroll()
+      scrollContainer.removeEventListener('mouseenter', handleMouseEnter)
+      scrollContainer.removeEventListener('mouseleave', handleMouseLeave)
+      scrollContainer.removeEventListener('touchstart', handleTouchStart)
+      scrollContainer.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [view]) // Re-run when view mode changes
 
   return (
     <>

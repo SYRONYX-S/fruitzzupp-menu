@@ -365,23 +365,22 @@ body::after { content: none; }
   animation: popupSlide var(--motion-normal) ease both;
   border: 1px solid rgba(0, 0, 0, 0.1);
   pointer-events: auto;
-  transform: translateX(-50%);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dish-suggestion-popup.transitioning {
   opacity: 0.7;
-  transform: translateX(-50%) scale(0.95);
+  transform: scale(0.95);
 }
 
 @keyframes popupSlide {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(10px) scale(0.95);
+    transform: translateY(10px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -525,6 +524,32 @@ body::after { content: none; }
   
   .popup-suggestions {
     padding: 10px 14px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dish-suggestion-popup {
+    width: calc(100vw - 32px);
+    max-width: 280px;
+    max-height: 240px;
+  }
+  
+  .popup-header {
+    padding: 12px 12px 8px;
+  }
+  
+  .popup-suggestions {
+    padding: 8px 12px 12px;
+  }
+  
+  .popup-suggestion-item {
+    padding: 6px;
+    gap: 8px;
+  }
+  
+  .popup-image {
+    width: 50px;
+    height: 38px;
   }
 }
 
@@ -706,6 +731,32 @@ body::after { content: none; }
 #recommended .grid,
 #recommended .list {
   scroll-behavior: smooth;
+  transition: scroll-left 0.3s ease-in-out;
+}
+
+/* Auto-carousel enhancements */
+#recommended .grid:hover,
+#recommended .list:hover {
+  scroll-behavior: auto; /* Allow immediate user interaction while hovering */
+}
+
+/* Enhanced card transitions for carousel */
+#recommended .card,
+#recommended .row {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Responsive card sizing for better carousel experience */
+@media (max-width: 480px) {
+  #recommended .card {
+    flex: 0 0 260px;
+    min-width: 260px;
+  }
+  
+  #recommended .row {
+    flex: 0 0 360px;
+    min-width: 360px;
+  }
 }
 
 /* Responsive filter modal */

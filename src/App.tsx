@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CATEGORY_ORDER, MENU, MenuCategory, MenuItem } from './data/menu'
+ 
 
 type ViewMode = 'grid' | 'list'
 

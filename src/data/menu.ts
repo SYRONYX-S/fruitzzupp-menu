@@ -5,6 +5,7 @@ export type MenuItem = {
   image: string
   isHealthy?: boolean
   isVegetarian?: boolean
+  score?: number
 }
 
 export type MenuCategory = {

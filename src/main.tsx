@@ -11,5 +11,17 @@ root.render(
   </React.StrictMode>
 )
 
+// Register service worker (vite-plugin-pwa auto registration)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.ready
+      console.log('Service Worker ready:', registration.scope)
+    } catch (e) {
+      console.log('Service Worker not available', e)
+    }
+  })
+}
+
 
 

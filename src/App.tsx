@@ -622,7 +622,7 @@ function App() {
     })
   }, [active])
 
-  // Auto-carousel for recommended section
+  // Enhanced seamless infinite carousel for recommended section
   useEffect(() => {
     const recommendedSection = document.getElementById('recommended')
     if (!recommendedSection) return
@@ -632,39 +632,123 @@ function App() {
 
     let autoScrollInterval: NodeJS.Timeout
     let isPaused = false
+    let isScrolling = false
+
+    // Get screen size for responsive behavior
+    const isSmallDevice = window.innerWidth <= 500
+    
+    const getCardDimensions = () => {
+      if (isSmallDevice) {
+        // For small devices, use full viewport width minus padding
+        return {
+          cardWidth: window.innerWidth - 32, // 16px padding on each side
+          gap: 0,
+          padding: 16
+        }
+      } else {
+        // For larger devices, calculate based on card size + gap
+        const isUltraSmall = window.innerWidth <= 320
+        const isVerySmall = window.innerWidth <= 360
+        const isExtraSmall = window.innerWidth <= 400
+        const isSmallMobile = window.innerWidth <= 480
+        const isMobile = window.innerWidth < 768
+        
+        if (view === 'grid') {
+          if (isUltraSmall) return { cardWidth: 200, gap: 10, padding: 10 }
+          else if (isVerySmall) return { cardWidth: 220, gap: 12, padding: 12 }
+          else if (isExtraSmall) return { cardWidth: 240, gap: 16, padding: 16 }
+          else if (isSmallMobile) return { cardWidth: 260, gap: 20, padding: 20 }
+          else return { cardWidth: 280, gap: 20, padding: 20 }
+        } else {
+          if (isUltraSmall) return { cardWidth: 260, gap: 10, padding: 10 }
+          else if (isVerySmall) return { cardWidth: 280, gap: 12, padding: 12 }
+          else if (isExtraSmall) return { cardWidth: 320, gap: 16, padding: 16 }
+          else if (isSmallMobile) return { cardWidth: 360, gap: 20, padding: 20 }
+          else if (isMobile) return { cardWidth: 400, gap: 20, padding: 20 }
+          else return { cardWidth: 420, gap: 20, padding: 20 }
+        }
+      }
+    }
+
+    const smoothScrollToPosition = (targetScroll: number, smooth = true) => {
+      scrollContainer.scrollTo({
+        left: targetScroll,
+        behavior: smooth ? 'smooth' : 'auto'
+      })
+    }
+
+    const createInfiniteLoop = () => {
+      const cards = scrollContainer.querySelectorAll('.card, .row')
+      const originalCards = Array.from(cards)
+      
+      if (originalCards.length === 0) return
+
+      // Clear any existing clones
+      scrollContainer.querySelectorAll('[data-clone]').forEach(clone => clone.remove())
+
+      // Clone cards for seamless infinite scroll
+      const clonesNeeded = Math.max(3, Math.ceil(window.innerWidth / 200)) // Ensure enough clones
+      
+      // Add clones at the end
+      for (let i = 0; i < clonesNeeded; i++) {
+        const clone = originalCards[i % originalCards.length].cloneNode(true) as HTMLElement
+        clone.setAttribute('data-clone', 'end')
+        scrollContainer.appendChild(clone)
+      }
+
+      // Add clones at the beginning
+      for (let i = 0; i < clonesNeeded; i++) {
+        const clone = originalCards[originalCards.length - 1 - i].cloneNode(true) as HTMLElement
+        clone.setAttribute('data-clone', 'start')
+        scrollContainer.insertBefore(clone, scrollContainer.firstChild)
+      }
+
+      return { originalCards, clonesNeeded }
+    }
+
+    const handleInfiniteScroll = () => {
+      if (isScrolling) return
+      
+      const { cardWidth, gap } = getCardDimensions()
+      const scrollWidth = scrollContainer.scrollWidth
+      const clientWidth = scrollContainer.clientWidth
+      const currentScroll = scrollContainer.scrollLeft
+      
+      const cards = scrollContainer.querySelectorAll('.card, .row')
+      const originalCards = cards.length / 3 // Since we add clones
+      const singleCardWidth = cardWidth + gap
+      const cloneSetWidth = originalCards * singleCardWidth
+
+      // Check if we need to loop
+      if (currentScroll <= singleCardWidth) {
+        // Near the beginning, jump to the end section
+        isScrolling = true
+        smoothScrollToPosition(currentScroll + cloneSetWidth, false)
+        setTimeout(() => { isScrolling = false }, 50)
+      } else if (currentScroll >= scrollWidth - clientWidth - singleCardWidth) {
+        // Near the end, jump to the beginning section
+        isScrolling = true
+        smoothScrollToPosition(currentScroll - cloneSetWidth, false)
+        setTimeout(() => { isScrolling = false }, 50)
+      }
+    }
 
     const startAutoScroll = () => {
       if (isPaused) return
       
       autoScrollInterval = setInterval(() => {
-        if (isPaused) return
+        if (isPaused || isScrolling) return
 
-        const scrollWidth = scrollContainer.scrollWidth
-        const clientWidth = scrollContainer.clientWidth
+        const { cardWidth, gap } = getCardDimensions()
         const currentScroll = scrollContainer.scrollLeft
-
-        // Calculate card width based on view mode and screen size
-        const isSmallMobile = window.innerWidth <= 480
-        const isMobile = window.innerWidth < 768
-        let cardWidth: number
+        const singleCardWidth = cardWidth + gap
         
-        if (view === 'grid') {
-          cardWidth = isSmallMobile ? 280 : 300 // Card width + gap
-        } else {
-          cardWidth = isSmallMobile ? 380 : (isMobile ? 420 : 440) // Row width + gap
-        }
+        // For small devices, scroll by full card width (one card at a time)
+        // For larger devices, scroll by single card width for smooth progression
+        const scrollDistance = isSmallDevice ? cardWidth : singleCardWidth
         
-        // Calculate next scroll position
-        const nextScroll = currentScroll + cardWidth
-
-        if (nextScroll >= scrollWidth - clientWidth) {
-          // Reset to beginning
-          scrollContainer.scrollTo({ left: 0, behavior: 'smooth' })
-        } else {
-          // Scroll to next card
-          scrollContainer.scrollTo({ left: nextScroll, behavior: 'smooth' })
-        }
-      }, 3000) // Auto-scroll every 3 seconds
+        smoothScrollToPosition(currentScroll + scrollDistance)
+      }, isSmallDevice ? 4000 : 3000) // Slower on small devices for better UX
     }
 
     const stopAutoScroll = () => {
@@ -689,18 +773,33 @@ function App() {
     }
 
     const handleTouchEnd = () => {
-      // Resume after a delay to allow for touch scrolling to complete
       setTimeout(() => {
         isPaused = false
         startAutoScroll()
       }, 1500)
     }
 
-    // Add event listeners for pause on interaction
+    const handleScroll = () => {
+      if (!isScrolling) {
+        requestAnimationFrame(handleInfiniteScroll)
+      }
+    }
+
+    // Initialize the infinite loop
+    const loopData = createInfiniteLoop()
+    if (!loopData) return
+
+    // Position scroll to show original content
+    const { cardWidth, gap } = getCardDimensions()
+    const initialOffset = loopData.clonesNeeded * (cardWidth + gap)
+    smoothScrollToPosition(initialOffset, false)
+
+    // Add event listeners
     scrollContainer.addEventListener('mouseenter', handleMouseEnter)
     scrollContainer.addEventListener('mouseleave', handleMouseLeave)
     scrollContainer.addEventListener('touchstart', handleTouchStart, { passive: true })
     scrollContainer.addEventListener('touchend', handleTouchEnd, { passive: true })
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true })
 
     // Start the auto-scroll
     startAutoScroll()
@@ -711,6 +810,10 @@ function App() {
       scrollContainer.removeEventListener('mouseleave', handleMouseLeave)
       scrollContainer.removeEventListener('touchstart', handleTouchStart)
       scrollContainer.removeEventListener('touchend', handleTouchEnd)
+      scrollContainer.removeEventListener('scroll', handleScroll)
+      
+      // Clean up clones
+      scrollContainer.querySelectorAll('[data-clone]').forEach(clone => clone.remove())
     }
   }, [view]) // Re-run when view mode changes
 

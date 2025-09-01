@@ -732,12 +732,99 @@ body::after { content: none; }
 #recommended .list {
   scroll-behavior: smooth;
   transition: scroll-left 0.3s ease-in-out;
+  /* Ensure smooth infinite scrolling */
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Hide clone markers */
+#recommended [data-clone] {
+  /* Clones should be identical to originals */
 }
 
 /* Auto-carousel enhancements */
 #recommended .grid:hover,
 #recommended .list:hover {
   scroll-behavior: auto; /* Allow immediate user interaction while hovering */
+}
+
+/* Single card view for small devices */
+@media (max-width: 500px) {
+  #recommended .grid,
+  #recommended .list {
+    gap: 0;
+    padding: 0 16px 20px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  #recommended .card {
+    flex: 0 0 calc(100vw - 32px);
+    min-width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+    scroll-snap-align: center;
+    margin: 0 16px 0 0;
+  }
+  
+  #recommended .card:last-child {
+    margin-right: 0;
+  }
+  
+  #recommended .row {
+    flex: 0 0 calc(100vw - 32px);
+    min-width: calc(100vw - 32px);
+    max-width: calc(100vw - 32px);
+    scroll-snap-align: center;
+    margin: 0 16px 0 0;
+  }
+  
+  #recommended .row:last-child {
+    margin-right: 0;
+  }
+  
+  /* Hide clones from being visible with gaps */
+  #recommended [data-clone] {
+    margin-left: 0;
+    margin-right: 0;
+  }
+  
+  /* Add subtle indicators for swipeable content */
+  #recommended .grid::after,
+  #recommended .list::after {
+    content: '';
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(
+      -45deg,
+      transparent 30%,
+      rgba(0,0,0,0.1) 30%,
+      rgba(0,0,0,0.1) 70%,
+      transparent 70%
+    );
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.6;
+    animation: swipeHint 2s ease-in-out infinite;
+  }
+  
+  @keyframes swipeHint {
+    0%, 100% { transform: translateY(-50%) translateX(0); opacity: 0.6; }
+    50% { transform: translateY(-50%) translateX(-10px); opacity: 0.3; }
+  }
+}
+
+/* Enhanced touch scrolling for larger small screens */
+@media (min-width: 501px) and (max-width: 768px) {
+  #recommended .grid,
+  #recommended .list {
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 /* Enhanced card transitions for carousel */
@@ -756,6 +843,101 @@ body::after { content: none; }
   #recommended .row {
     flex: 0 0 360px;
     min-width: 360px;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 400px) {
+  #recommended .card {
+    flex: 0 0 240px;
+    min-width: 240px;
+    padding: 10px;
+  }
+  
+  #recommended .row {
+    flex: 0 0 320px;
+    min-width: 320px;
+    padding: 10px 12px;
+  }
+  
+  #recommended .grid,
+  #recommended .list {
+    gap: 16px;
+    padding: 0 16px 16px;
+  }
+  
+  #recommended .card .thumb {
+    height: 110px;
+  }
+  
+  #recommended .card .name {
+    font-size: 13px;
+  }
+  
+  #recommended .row .thumb {
+    height: 60px;
+    width: 60px;
+  }
+}
+
+/* Very small mobile devices */
+@media (max-width: 360px) {
+  #recommended .card {
+    flex: 0 0 220px;
+    min-width: 220px;
+  }
+  
+  #recommended .row {
+    flex: 0 0 280px;
+    min-width: 280px;
+  }
+  
+  #recommended .grid,
+  #recommended .list {
+    gap: 12px;
+    padding: 0 12px 12px;
+  }
+}
+
+/* Ultra small mobile devices */
+@media (max-width: 320px) {
+  #recommended .card {
+    flex: 0 0 200px;
+    min-width: 200px;
+    padding: 8px;
+  }
+  
+  #recommended .row {
+    flex: 0 0 260px;
+    min-width: 260px;
+    padding: 8px 10px;
+  }
+  
+  #recommended .grid,
+  #recommended .list {
+    gap: 10px;
+    padding: 0 10px 10px;
+  }
+  
+  #recommended .card .thumb {
+    height: 100px;
+  }
+  
+  #recommended .card .name {
+    font-size: 13px;
+  }
+  
+  #recommended .card .meta {
+    font-size: 11px;
+  }
+  
+  #recommended .row .thumb {
+    height: 56px;
+    width: 56px;
+  }
+  
+  #recommended .row .name {
+    font-size: 14px;
   }
 }
 
